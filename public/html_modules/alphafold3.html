@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoldBench - AlphaFold 3 时代全原子预测基准</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, "Microsoft Yahei", Tahoma, Simsun, sans-serif;
+            background-color: #0f172a; /* 修改：将背景色设为与容器统一的深蓝色 */
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden; /* 防止出现多余的滚动条 */
+        }
+        
+        /* Slide Transitions */
+        .slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-out;
+            transform: scale(0.98);
+            display: flex;
+            flex-direction: column;
+        }
+        .slide.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+            z-index: 10;
+        }
+
+        /* Presentation Container */
+        .presentation-container {
+            width: 100%;
+            height: 100%; /* 修改：放弃 fixed aspect-ratio，让它 100% 撑满 iframe */
+            background-color: transparent; 
+            position: relative;
+            overflow: hidden;
+            /* 删除了之前的 max-width, border-radius 和 border，这些全交由 React 的 iframe 控制 */
+        }
+
+        /* Custom Gradients and Animations */
+        .bg-radial-gradient {
+            background: radial-gradient(circle at center, rgba(6,182,212,0.15) 0%, #0f172a 70%);
+        }
+        
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+        .animate-shimmer {
+            animation: shimmer 2s infinite linear;
+        }
+    </style>
+</head>
+<body class="selection:bg-cyan-500/30">
+
+    <div class="presentation-container">
+        <div id="slides-wrapper" class="relative w-full h-full flex-grow">
+            
+            <div class="slide active p-8 md:p-12 items-center justify-center text-center">
+                <div class="absolute inset-0 bg-radial-gradient"></div>
+                <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1633167606207-d840b5070fc2?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-10 mix-blend-luminosity"></div>
+                
+                <div class="z-10 max-w-4xl px-8 flex flex-col items-center">
+                    <div class="mb-6 p-4 bg-slate-800/80 rounded-full border border-cyan-500/50 backdrop-blur-sm shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+                        <i data-lucide="dna" class="text-cyan-400 w-16 h-16"></i>
+                    </div>
+                    <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight drop-shadow-lg">
+                        Benchmarking all-atom biomolecular <br/>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                            structure prediction with FoldBench
+                        </span>
+                    </h1>
+                    <div class="mt-4 p-6 md:p-8 bg-slate-800/80 backdrop-blur-md rounded-2xl border border-slate-600 shadow-2xl">
+                        <p class="text-lg md:text-2xl font-medium text-slate-200">
+                            首个全面评估全原子生物分子结构预测模型的基准数据集发布！
+                        </p>
+                        <p class="text-xl md:text-3xl font-bold text-orange-400 mt-4">
+                            谁才是 AlphaFold 3 时代的真正王者？
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slide p-8 md:p-12 overflow-y-auto">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center">
+                    <span class="text-cyan-400 mr-4 font-black">01</span> FoldBench 基准数据集
+                </h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mb-8 rounded-full"></div>
+                
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 h-full pb-16">
+                    <div class="bg-slate-800/40 rounded-3xl p-6 border border-slate-700 flex flex-col justify-center items-center relative shadow-inner">
+                        <h3 class="text-xl font-bold text-white mb-6 self-start w-full border-b border-slate-700 pb-4">基准建立与数据严谨性</h3>
+                        <div class="flex flex-col items-center space-y-3 w-full max-w-md">
+                            <div class="w-full flex justify-between items-center bg-slate-700/50 p-4 rounded-xl border border-slate-600">
+                                <i data-lucide="database" class="text-slate-400 w-8 h-8"></i>
+                                <span class="text-lg font-medium">PDB 原始海量数据</span>
+                            </div>
+                            <i data-lucide="filter" class="text-cyan-400 w-8 h-8 animate-bounce mt-2"></i>
+                            <div class="w-4/5 flex justify-center items-center bg-blue-900/40 p-4 rounded-xl border border-blue-500/30">
+                                <span class="text-sm text-blue-200">去除高序列/结构相似目标</span>
+                            </div>
+                            <i data-lucide="filter" class="text-cyan-400 w-8 h-8 mt-2"></i>
+                            <div class="w-3/5 flex flex-col items-center bg-gradient-to-br from-cyan-900/80 to-blue-900/80 p-6 rounded-2xl border border-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.2)] mt-2">
+                                <span class="text-4xl md:text-5xl font-black text-cyan-400 mb-2 drop-shadow-md">1,522</span>
+                                <span class="text-xs md:text-sm font-bold text-white text-center leading-snug">低同源性生物组装体<br/><span class="text-cyan-200 font-normal">(避免数据泄露)</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col">
+                        <h3 class="text-xl font-bold text-white mb-4">涵盖 9 种不同的预测任务</h3>
+                        <p class="text-slate-300 mb-6 leading-relaxed text-sm md:text-base bg-slate-800/30 p-4 rounded-xl border-l-4 border-blue-500">
+                            旨在为模型提供公平、严格的评估标准，并揭示其在不同任务中的性能依赖性和局限性。
+                        </p>
+                        
+                        <div class="grid grid-cols-3 gap-3 flex-grow">
+                            <div class="bg-slate-800/60 border border-slate-600 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                                <i data-lucide="dna" class="text-cyan-400 w-6 h-6 mb-2"></i><span class="text-xs font-medium">蛋白质</span>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-600 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                                <i data-lucide="activity" class="text-cyan-400 w-6 h-6 mb-2"></i><span class="text-xs font-medium">核酸</span>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-600 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                                <i data-lucide="test-tube" class="text-cyan-400 w-6 h-6 mb-2"></i><span class="text-xs font-medium">配体</span>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-600 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                                <i data-lucide="layers" class="text-blue-400 w-6 h-6 mb-2"></i><span class="text-xs font-medium">蛋白-蛋白</span>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-600 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                                <i data-lucide="target" class="text-blue-400 w-6 h-6 mb-2"></i><span class="text-xs font-medium">蛋白-配体</span>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-600 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                                <i data-lucide="zap" class="text-blue-400 w-6 h-6 mb-2"></i><span class="text-xs font-medium">抗体-抗原</span>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-600 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                                <i data-lucide="microscope" class="text-purple-400 w-6 h-6 mb-2"></i><span class="text-xs font-medium">构象变化</span>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-600 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                                <i data-lucide="database" class="text-purple-400 w-6 h-6 mb-2"></i><span class="text-xs font-medium">离子</span>
+                            </div>
+                            <div class="bg-slate-800/60 border border-slate-600 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                                <i data-lucide="bar-chart-3" class="text-purple-400 w-6 h-6 mb-2"></i><span class="text-xs font-medium">综合排名</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slide p-8 md:p-12 overflow-y-auto">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center">
+                    <span class="text-cyan-400 mr-4 font-black">02</span> AlphaFold 3 的总体优势
+                </h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mb-8 rounded-full"></div>
+                
+                <div class="flex flex-col xl:flex-row gap-8 h-full pb-16">
+                    <div class="w-full xl:w-[40%] flex flex-col justify-center space-y-6">
+                        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-3xl border border-slate-600 shadow-xl relative overflow-hidden">
+                            <i data-lucide="trending-up" class="absolute -top-4 -right-4 text-slate-700 w-32 h-32 opacity-20"></i>
+                            <h3 class="text-lg text-slate-300 mb-2 font-medium">蛋白-配体任务成功率</h3>
+                            <div class="flex items-end gap-2 mb-4 mt-2">
+                                <span class="text-5xl md:text-[5.5rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 drop-shadow-lg">64.9%</span>
+                            </div>
+                            <div class="inline-flex items-center text-emerald-400 bg-emerald-400/10 px-4 py-2 rounded-full font-bold text-sm border border-emerald-500/30">
+                                <i data-lucide="trending-up" class="w-4 h-4 mr-2"></i> 比次优模型高出近 10%
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800/60 p-6 rounded-2xl border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.05)]">
+                            <h3 class="text-lg text-white font-bold mb-3 flex items-center">
+                                <i data-lucide="medal" class="mr-3 text-orange-400 w-5 h-5"></i> 困难模式依然第一
+                            </h3>
+                            <p class="text-slate-300 text-sm leading-relaxed">
+                                在抗体-抗原任务中，尽管整体成功率降至 <span class="text-orange-400 font-bold text-lg px-1">47.9%</span>，但仍显著优于其他模型。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="w-full xl:w-[60%] bg-slate-800/40 rounded-3xl border border-slate-700 p-6 flex flex-col shadow-inner">
+                        <h3 class="text-xl font-bold text-white mb-6 text-center tracking-wide">全原子预测模型横向综合表现</h3>
+                        
+                        <div class="flex-grow flex flex-col justify-around py-2 gap-3">
+                            <div class="flex items-center gap-4">
+                                <div class="w-24 text-right font-bold text-white text-sm">AlphaFold 3</div>
+                                <div class="flex-grow h-8 bg-slate-900 rounded-full overflow-hidden relative border border-slate-700 shadow-inner">
+                                    <div class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full relative overflow-hidden" style="width: 95%">
+                                        <div class="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-[-20deg] animate-shimmer"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-24 text-right font-medium text-slate-300 text-sm">Chai-1</div>
+                                <div class="flex-grow h-6 bg-slate-900 rounded-full overflow-hidden relative border border-slate-700 shadow-inner">
+                                    <div class="h-full bg-slate-500 rounded-full" style="width: 82%"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-24 text-right font-medium text-slate-300 text-sm">Boltz-1</div>
+                                <div class="flex-grow h-6 bg-slate-900 rounded-full overflow-hidden relative border border-slate-700 shadow-inner">
+                                    <div class="h-full bg-slate-500 rounded-full" style="width: 78%"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-24 text-right font-medium text-slate-300 text-sm">HelixFold 3</div>
+                                <div class="flex-grow h-6 bg-slate-900 rounded-full overflow-hidden relative border border-slate-700 shadow-inner">
+                                    <div class="h-full bg-slate-600 rounded-full" style="width: 70%"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-24 text-right font-medium text-slate-300 text-sm">Protenix</div>
+                                <div class="flex-grow h-6 bg-slate-900 rounded-full overflow-hidden relative border border-slate-700 shadow-inner">
+                                    <div class="h-full bg-slate-600 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slide p-8 md:p-12 overflow-y-auto">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center">
+                    <span class="text-cyan-400 mr-4 font-black">03</span> 各类型预测的挑战与瓶颈
+                </h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mb-8 rounded-full"></div>
+                
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 h-full pb-16">
+                    <div class="bg-slate-800/60 rounded-3xl p-6 border border-slate-700 flex flex-col relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-bl-full -mr-10 -mt-10"></div>
+                        <div class="bg-slate-900/80 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-slate-700 z-10">
+                            <i data-lucide="target" class="text-blue-400 w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-3 z-10">蛋白-配体互作</h3>
+                        <p class="text-slate-300 leading-relaxed mb-4 text-sm z-10">
+                            <span class="text-cyan-400 font-bold border-b border-cyan-400/30 pb-0.5">配体相似性</span>是影响预测准确性的关键因素。
+                        </p>
+                        <div class="mt-auto bg-slate-900/80 p-4 rounded-xl border-l-4 border-blue-500 shadow-inner z-10">
+                            <p class="text-slate-400 text-xs md:text-sm">当配体与训练集的相似性降低时，对接准确性会显著下降。</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/60 rounded-3xl p-6 border border-red-900/60 flex flex-col relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-bl-full -mr-10 -mt-10"></div>
+                        <div class="bg-red-950/50 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-red-800 z-10">
+                            <i data-lucide="triangle-alert" class="text-red-400 w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-3 z-10">抗体-抗原互作</h3>
+                        <p class="text-slate-300 leading-relaxed mb-4 text-sm z-10">
+                            由于 CDR (互补决定区) 环的灵活性和多样性，这是一个重大挑战。
+                        </p>
+                        <div class="mt-auto bg-red-950/40 p-4 rounded-xl border border-red-900/50 flex items-center z-10">
+                            <i data-lucide="circle-x" class="text-red-500 mr-3 w-8 h-8 flex-shrink-0"></i>
+                            <p class="text-red-200 font-medium text-xs md:text-sm leading-tight">
+                                整体<br/><span class="text-red-400 font-black text-xl">失败率仍超 50%</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/60 rounded-3xl p-6 border border-slate-700 flex flex-col relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-full -mr-10 -mt-10"></div>
+                        <div class="bg-slate-900/80 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-slate-700 z-10">
+                            <i data-lucide="activity" class="text-purple-400 w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-3 z-10">核酸结构预测</h3>
+                        <p class="text-slate-300 leading-relaxed mb-4 text-sm z-10">
+                            核酸(尤其是 <span class="text-orange-300 font-bold">RNA</span>) 的异质性使模型难以准确预测其三级折叠。
+                        </p>
+                        <div class="mt-auto bg-slate-900/80 p-4 rounded-xl border border-slate-700 shadow-inner z-10">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-slate-300 font-medium text-xs">DNA 单体 (AF3)</span>
+                                <span class="text-cyan-400 font-black text-xs">LDDT 0.53</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mb-2">
+                                <div class="bg-cyan-400 h-full rounded-full" style="width: 53%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slide p-8 md:p-12 overflow-y-auto">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center">
+                    <span class="text-cyan-400 mr-4 font-black">04</span> 局限性与未来研究方向
+                </h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mb-8 rounded-full"></div>
+                
+                <div class="flex flex-col h-full gap-6 pb-16">
+                    <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-3xl p-6 border border-slate-600 flex items-center shadow-xl">
+                        <div class="bg-slate-900/80 p-4 rounded-2xl mr-6 shadow-inner border border-slate-700 flex-shrink-0 hidden md:block">
+                            <i data-lucide="brain" class="text-orange-400 w-12 h-12"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white mb-3">
+                                致命的 <span class="text-orange-400 px-2 py-1 bg-orange-400/10 rounded-lg border border-orange-500/20">“记忆效应”</span>
+                            </h3>
+                            <p class="text-slate-300 text-sm md:text-base leading-relaxed">
+                                模型在数据充足时表现良好，但在<span class="text-white font-bold border-b border-orange-400 pb-0.5 mx-1">数据稀缺领域（如核酸）</span>表现较差。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow flex flex-col">
+                        <h3 class="text-xl font-bold text-cyan-400 mb-4 flex items-center">
+                            <i data-lucide="rocket" class="mr-2 w-5 h-5"></i> 突破瓶颈的三大建议
+                        </h3>
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-grow">
+                            <div class="bg-slate-800/40 rounded-3xl p-6 border border-slate-700/80 flex flex-col items-center text-center">
+                                <i data-lucide="database" class="text-blue-400 w-8 h-8 mb-4"></i>
+                                <h4 class="text-lg font-bold text-white mb-2">扩充基础数据</h4>
+                                <p class="text-slate-400 text-sm">扩展基础训练数据集的规模和多样性。</p>
+                            </div>
+                            <div class="bg-slate-800/40 rounded-3xl p-6 border border-slate-700/80 flex flex-col items-center text-center">
+                                <i data-lucide="layers" class="text-purple-400 w-8 h-8 mb-4"></i>
+                                <h4 class="text-lg font-bold text-white mb-2">应用合成数据</h4>
+                                <p class="text-slate-400 text-sm">探索数据合成技术（如自蒸馏）增强可用数据。</p>
+                            </div>
+                            <div class="bg-slate-800/40 rounded-3xl p-6 border border-slate-700/80 flex flex-col items-center text-center">
+                                <i data-lucide="target" class="text-emerald-400 w-8 h-8 mb-4"></i>
+                                <h4 class="text-lg font-bold text-white mb-2">优化打分算法</h4>
+                                <p class="text-slate-400 text-sm">开发更有效的评分函数或结合强化学习。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slide p-8 md:p-12 overflow-y-auto">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center">
+                    <span class="text-cyan-400 mr-4 font-black">05</span> 特定案例分析
+                </h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mb-8 rounded-full"></div>
+                
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 h-full pb-16">
+                    <div class="flex flex-col gap-6">
+                        <div class="bg-slate-800/60 p-6 rounded-3xl border border-slate-600 shadow-lg">
+                            <h3 class="text-xl font-bold text-white mb-3 flex items-center">
+                                <span class="w-1.5 h-6 bg-orange-400 rounded-full mr-3"></span>变构调节的滑铁卢
+                            </h3>
+                            <p class="text-slate-300 text-sm leading-relaxed">
+                                训练集中<span class="text-orange-300">正构复合物过度代表</span>，导致变构位点预测困难。
+                            </p>
+                        </div>
+                        <div class="bg-slate-800/60 p-6 rounded-3xl border border-slate-600 shadow-lg flex-grow">
+                            <h3 class="text-xl font-bold text-white mb-3 flex items-center">
+                                <span class="w-1.5 h-6 bg-cyan-400 rounded-full mr-3"></span>抗体对接命门
+                            </h3>
+                            <p class="text-slate-300 text-sm mb-4">
+                                <strong class="text-cyan-300">CDR H3 环</strong>的建模质量至关重要。
+                            </p>
+                            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+                                <p class="text-slate-200 text-sm">
+                                    <span class="text-white font-black bg-cyan-500/20 px-1 rounded">H3 RMSD 得分与 DockQ 反相关</span>，成为对接失败诱因。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/40 rounded-3xl border border-slate-700 flex flex-col items-center justify-center p-6 relative shadow-lg">
+                        <h4 class="text-base font-bold text-slate-200 mb-6">H3 RMSD vs DockQ 反相关散点图</h4>
+                        <div class="w-full max-w-[250px] aspect-square border-l border-b border-slate-500 relative ml-4 mb-4">
+                            <span class="absolute -left-10 top-1/2 -translate-y-1/2 -rotate-90 text-xs text-slate-400">DockQ</span>
+                            <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-slate-400">RMSD</span>
+                            <svg class="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+                                <line x1="5%" y1="5%" x2="95%" y2="90%" stroke="rgba(249, 115, 22, 0.8)" stroke-width="2" stroke-dasharray="4 4" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slide p-8 md:p-12 overflow-y-auto">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center">
+                    <span class="text-cyan-400 mr-4 font-black">06</span> 总体结论
+                </h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 mb-8 rounded-full"></div>
+                
+                <div class="flex flex-col h-full gap-6 pb-16">
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div class="bg-slate-800/60 p-6 rounded-3xl border-t-4 border-emerald-500 flex items-start shadow-lg">
+                            <i data-lucide="check-circle-2" class="text-emerald-400 w-6 h-6 mr-3 mt-1 flex-shrink-0"></i>
+                            <div>
+                                <h3 class="text-lg font-bold text-white mb-2">AlphaFold 3 依然卓越</h3>
+                                <p class="text-slate-300 text-sm leading-relaxed">在多数复合物预测任务中一致展现卓越准确性。</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-800/60 p-6 rounded-3xl border-t-4 border-red-500 flex items-start shadow-lg">
+                            <i data-lucide="x-circle" class="text-red-400 w-6 h-6 mr-3 mt-1 flex-shrink-0"></i>
+                            <div>
+                                <h3 class="text-lg font-bold text-white mb-2">显著短板存在</h3>
+                                <p class="text-slate-300 text-sm leading-relaxed">抗原-抗体复合物及核酸预测面临挑战。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto relative bg-slate-900 border border-slate-700 p-8 rounded-3xl text-center shadow-2xl">
+                        <i data-lucide="quote" class="text-cyan-400 w-6 h-6 mx-auto mb-4"></i>
+                        <h3 class="text-xl font-black text-white mb-4">泛化能力有待提高，指明前路</h3>
+                        <p class="text-sm text-slate-300 leading-relaxed max-w-3xl mx-auto">
+                            “研究揭示了模型性能对训练集相似性的依赖。当前模型对<span class="text-cyan-400 font-bold px-1">未见过的数据</span>的泛化能力有限。”
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-6 z-50 pointer-events-none">
+            <button onclick="prevSlide()" id="btn-prev" class="pointer-events-auto p-2 rounded-full bg-slate-800/90 text-white hover:bg-cyan-500 transition-all border border-slate-600 disabled:opacity-30">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            </button>
+            <div class="pointer-events-auto flex gap-2 bg-slate-800/90 px-4 py-2 rounded-full border border-slate-600" id="dots-container"></div>
+            <button onclick="nextSlide()" id="btn-next" class="pointer-events-auto p-2 rounded-full bg-slate-800/90 text-white hover:bg-cyan-500 transition-all border border-slate-600 disabled:opacity-30">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const dotsContainer = document.getElementById('dots-container');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+
+        slides.forEach((_, idx) => {
+            const dot = document.createElement('button');
+            dot.className = `w-2 h-2 rounded-full transition-all duration-300 ${idx === 0 ? 'bg-cyan-400 w-6' : 'bg-slate-500'}`;
+            dot.onclick = () => goToSlide(idx);
+            dotsContainer.appendChild(dot);
+        });
+
+        const dots = dotsContainer.querySelectorAll('button');
+
+        function updateUI() {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('active', idx === currentSlideIndex);
+            });
+            dots.forEach((dot, idx) => {
+                dot.className = idx === currentSlideIndex 
+                    ? 'w-6 h-2 rounded-full transition-all duration-300 bg-cyan-400 shadow-[0_0_8px_#22d3ee]' 
+                    : 'w-2 h-2 rounded-full transition-all duration-300 bg-slate-500 hover:bg-slate-400';
+            });
+            btnPrev.disabled = currentSlideIndex === 0;
+            btnNext.disabled = currentSlideIndex === slides.length - 1;
+        }
+
+        function nextSlide() { if (currentSlideIndex < slides.length - 1) { currentSlideIndex++; updateUI(); } }
+        function prevSlide() { if (currentSlideIndex > 0) { currentSlideIndex--; updateUI(); } }
+        function goToSlide(index) { currentSlideIndex = index; updateUI(); }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+            else if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        updateUI();
+    </script>
+</body>
+</html>

@@ -1,16 +1,28 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+// ==========================================
+// 🚨 核心修复：将所有图片作为变量导入
+// 确保您的 src/assets/ 目录下有这些对应的图片文件
+// ==========================================
+import structureImg from '../assets/structure.jpg';
+import reactionsImg from '../assets/reactions.jpg';
+import elementsImg from '../assets/elements.jpg';
+import theoryImg from '../assets/theory.jpg';
+import aiImg from '../assets/AI+.jpg';
+import trajectoryImg from '../assets/tractory.jpg';
+import heroCoverImg from '../assets/hero-cover.jpg';
+
 export default function Home() {
   // ==========================================
-  // 核心模块数据字典（已100%全量展开所有二/三级子模块及极限挑战）
+  // 核心模块数据字典（已替换为安全的图片变量）
   // ==========================================
   const coreModules = [
     { 
       id: 'structure', 
       name: '物质结构', 
       icon: 'science',
-      img: '/structure.jpg', 
+      img: structureImg, // 使用 import 的变量
       path: '/structure',
       desc: '探索原子轨道、分子构型与晶体结构，建立三维空间认知，剖析物质微观本质。',
       subModules: [
@@ -25,7 +37,7 @@ export default function Home() {
       id: 'reactions', 
       name: '反应基础', 
       icon: 'experiment',
-      img: '/reactions.jpg', 
+      img: reactionsImg, // 使用 import 的变量
       path: '/reactions',
       desc: '深入解析热力学与动力学原理，通过交互动画直观阐释反应机理与能量变化过程。',
       subModules: [
@@ -43,7 +55,7 @@ export default function Home() {
       id: 'elements', 
       name: '元素化学', 
       icon: 'grid_view',
-      img: '/elements.jpg', 
+      img: elementsImg, // 使用 import 的变量
       path: '/elements',
       desc: '系统学习主族与副族元素性质，构建动态周期表，洞悉元素递变规律与典型化合物特性。',
       subModules: [
@@ -58,7 +70,7 @@ export default function Home() {
       id: 'theory', 
       name: '理论应用', 
       icon: 'functions',
-      img: '/theory.jpg', 
+      img: theoryImg, // 使用 import 的变量
       path: '/theory',
       desc: '探究理论在实践中的应用案例，将深奥理论转化为可视化模型，指导实际化学应用。',
       subModules: [
@@ -71,7 +83,7 @@ export default function Home() {
       id: 'ai', 
       name: 'AI+前沿', 
       icon: 'auto_awesome',
-      img: '/AI+.jpg', 
+      img: aiImg, // 使用 import 的变量
       path: '/ai-assistant',
       desc: '探究AI驱动的前沿化学领域的最新应用，AI助教解析前沿科研文献研究亮点。',
       subModules: [
@@ -84,7 +96,7 @@ export default function Home() {
       id: 'trajectory', 
       name: '学习轨迹', 
       icon: 'timeline',
-      img: '/tractory.jpg', 
+      img: trajectoryImg, // 使用 import 的变量
       path: '/trajectory',
       desc: '利用数据分析多维度评估学习成效，生成个性化能力雷达图，精准规划后续提升路径。',
       subModules: [
@@ -131,7 +143,8 @@ export default function Home() {
             </div>
           </div>
           <div style={styles.heroImageContainer}>
-            <img src="/hero-cover.jpg" alt="Hero" style={styles.heroImg} />
+            {/* 🚨 核心修复：巨幕背景图使用变量引入 */}
+            <img src={heroCoverImg} alt="Hero" style={styles.heroImg} />
           </div>
         </div>
       </section>
@@ -168,6 +181,7 @@ export default function Home() {
             {coreModules.map(mod => (
               <div key={mod.id} style={styles.moduleCard}>
                 <Link to={mod.path} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  {/* 🚨 核心修复：动态渲染正确的变量图片 */}
                   <div style={{ ...styles.moduleImg, backgroundImage: `url(${mod.img})` }}></div>
                   <div style={styles.moduleContent}>
                     <div style={styles.moduleHeader}>

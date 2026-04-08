@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+// 🌟 1. 新增引入 Clerk 组件，让主页拥有识别登录状态的能力
+import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 
 // ==========================================
-// 🚨 核心修复：将所有图片作为变量导入
-// 确保您的 src/assets/ 目录下有这些对应的图片文件
+// 🚨 图片变量导入 (保持你的原样)
 // ==========================================
 import structureImg from '../assets/structure.jpg';
 import reactionsImg from '../assets/reactions.jpg';
@@ -14,15 +15,13 @@ import trajectoryImg from '../assets/tractory.jpg';
 import heroCoverImg from '../assets/hero-cover.jpg';
 
 export default function Home() {
-  // ==========================================
-  // 核心模块数据字典（已替换为安全的图片变量）
-  // ==========================================
+  // 核心模块数据字典 (保持不变)
   const coreModules = [
     { 
       id: 'structure', 
       name: '物质结构', 
       icon: 'science',
-      img: structureImg, // 使用 import 的变量
+      img: structureImg, 
       path: '/structure',
       desc: '探索原子轨道、分子构型与晶体结构，建立三维空间认知，剖析物质微观本质。',
       subModules: [
@@ -37,7 +36,7 @@ export default function Home() {
       id: 'reactions', 
       name: '反应基础', 
       icon: 'experiment',
-      img: reactionsImg, // 使用 import 的变量
+      img: reactionsImg, 
       path: '/reactions',
       desc: '深入解析热力学与动力学原理，通过交互动画直观阐释反应机理与能量变化过程。',
       subModules: [
@@ -55,7 +54,7 @@ export default function Home() {
       id: 'elements', 
       name: '元素化学', 
       icon: 'grid_view',
-      img: elementsImg, // 使用 import 的变量
+      img: elementsImg, 
       path: '/elements',
       desc: '系统学习主族与副族元素性质，构建动态周期表，洞悉元素递变规律与典型化合物特性。',
       subModules: [
@@ -70,7 +69,7 @@ export default function Home() {
       id: 'theory', 
       name: '理论应用', 
       icon: 'functions',
-      img: theoryImg, // 使用 import 的变量
+      img: theoryImg, 
       path: '/theory',
       desc: '探究理论在实践中的应用案例，将深奥理论转化为可视化模型，指导实际化学应用。',
       subModules: [
@@ -83,7 +82,7 @@ export default function Home() {
       id: 'ai', 
       name: 'AI+前沿', 
       icon: 'auto_awesome',
-      img: aiImg, // 使用 import 的变量
+      img: aiImg, 
       path: '/ai-assistant',
       desc: '探究AI驱动的前沿化学领域的最新应用，AI助教解析前沿科研文献研究亮点。',
       subModules: [
@@ -96,7 +95,7 @@ export default function Home() {
       id: 'trajectory', 
       name: '学习轨迹', 
       icon: 'timeline',
-      img: trajectoryImg, // 使用 import 的变量
+      img: trajectoryImg, 
       path: '/trajectory',
       desc: '利用数据分析多维度评估学习成效，生成个性化能力雷达图，精准规划后续提升路径。',
       subModules: [
@@ -122,9 +121,19 @@ export default function Home() {
             <a href="#modules" style={styles.navLink}>核心模块</a>
             <a href="#support" style={styles.navLink}>用户支持</a>
           </div>
+          
           <div style={styles.authBox}>
-            <Link to="/sign-in" style={styles.registerTextBtn}>免费注册</Link>
-            <Link to="/sign-in" style={styles.loginSolidBtn}>登录系统</Link>
+            {/* 🌟 核心逻辑 1：未登录时，显示去注册/登录的按钮 */}
+            <SignedOut>
+              <Link to="/sign-in" style={styles.registerTextBtn}>免费注册</Link>
+              <Link to="/sign-in" style={styles.loginSolidBtn}>登录系统</Link>
+            </SignedOut>
+
+            {/* 🌟 核心逻辑 2：已登录时，显示进入实验室按钮和用户头像 */}
+            <SignedIn>
+              <Link to="/ai-assistant" style={styles.registerTextBtn}>进入实验舱</Link>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
           </div>
         </nav>
       </header>
@@ -137,13 +146,23 @@ export default function Home() {
             <p style={styles.heroSub}>
               基于深度学习框架与高保真渲染的虚拟实验室，构建游戏化交互探究式化学学习生态，重塑化学教育未来。
             </p>
-            <div style={styles.registrationBox}>
-              <input type="email" placeholder="输入邮箱地址，开启您的科研之旅..." style={styles.emailInput} />
-              <Link to="/sign-in" style={styles.heroRegisterBtn}>免费注册</Link>
-            </div>
+            
+            {/* 🌟 核心逻辑 3：巨幕区的注册框也实现状态联动 */}
+            <SignedOut>
+              <div style={styles.registrationBox}>
+                <input type="email" placeholder="输入邮箱地址，开启您的科研之旅..." style={styles.emailInput} />
+                <Link to="/sign-in" style={styles.heroRegisterBtn}>免费注册</Link>
+              </div>
+            </SignedOut>
+            
+            <SignedIn>
+              <div style={styles.registrationBox} style={{backgroundColor: 'transparent', padding: 0}}>
+                <Link to="/ai-assistant" style={styles.heroRegisterBtn}>🚀 已认证，立即进入实验舱</Link>
+              </div>
+            </SignedIn>
+
           </div>
           <div style={styles.heroImageContainer}>
-            {/* 🚨 核心修复：巨幕背景图使用变量引入 */}
             <img src={heroCoverImg} alt="Hero" style={styles.heroImg} />
           </div>
         </div>
@@ -173,7 +192,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= 4. 核心模块 (全量级透出式胶囊导航) ================= */}
+      {/* ================= 4. 核心模块 ================= */}
       <section id="modules" style={styles.sectionWhite}>
         <div style={styles.contentWrapper}>
           <h2 style={styles.sectionTitleLeft}>核心模块</h2>
@@ -181,7 +200,6 @@ export default function Home() {
             {coreModules.map(mod => (
               <div key={mod.id} style={styles.moduleCard}>
                 <Link to={mod.path} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  {/* 🚨 核心修复：动态渲染正确的变量图片 */}
                   <div style={{ ...styles.moduleImg, backgroundImage: `url(${mod.img})` }}></div>
                   <div style={styles.moduleContent}>
                     <div style={styles.moduleHeader}>
@@ -192,7 +210,6 @@ export default function Home() {
                   </div>
                 </Link>
                 
-                {/* 胶囊标签区：通过 flexWrap 完美适配多达 8 个的子模块标签 */}
                 <div style={styles.subModuleContainer}>
                   {mod.subModules.map((sub, index) => (
                     <Link to={sub.path} key={index} style={styles.subModuleTag}>
@@ -261,7 +278,7 @@ export default function Home() {
   );
 }
 
-// ================= 样式表 =================
+// ================= 样式表 (保持不变) =================
 const styles = {
   container: { backgroundColor: '#f8f9fa', color: '#191c1d', fontFamily: 'Inter, sans-serif' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 64px', backgroundColor: '#fff', borderBottom: '1px solid #e7e8e9', position: 'sticky', top: 0, zIndex: 100 },

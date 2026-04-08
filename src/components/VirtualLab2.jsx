@@ -27,8 +27,7 @@ const CompoundProps = {
   'ethanol': { name: 'K<sub>3</sub>[Fe(C<sub>2</sub>O<sub>4</sub>)<sub>3</sub>]&middot;3H<sub>2</sub>O 晶体', color: 'rgba(5, 150, 105, 0.95)', cn: '6 (高自旋)', lambda: '紫外区', delta: 'LMCT掩盖', path: "M 0 10 L 20 90 L 100 100", css: "curve-purple", mag: 5.92 }
 };
 
-// 🌟 核心修复 1：把函数名改成 AIChemistry，彻底解决 React 命名冲突报错！
-export default function AIChemistry() {
+export default function VirtualLab() {
   // --- 核心状态 ---
   const [activeModule, setActiveModule] = useState('A');
   const [currentCompoundId, setCurrentCompoundId] = useState('none');
@@ -74,7 +73,7 @@ export default function AIChemistry() {
     if (!p) return;
     setCurrentCompoundId(id);
     setLiquidVol(prev => prev === 0 ? 40 : (prev < 80 ? prev + 15 : 80));
-    showToast(`成功加入：${p.name.replace(/<[^>]*>?/gm, '')}`); 
+    showToast(`成功加入：${p.name.replace(/<[^>]*>?/gm, '')}`); // 去除HTML标签作为Toast提示
   };
 
   const switchModule = (mod) => {
@@ -180,6 +179,7 @@ export default function AIChemistry() {
     }
   };
 
+  // --- 仪器操作函数 ---
   const runUVVis = (step) => {
     if (step === 'bg') {
       setUvState(s => ({ ...s, text: '扫描溶剂背景...完成。' }));
@@ -243,6 +243,7 @@ export default function AIChemistry() {
     }
   };
 
+  // --- AI 问答交互 ---
   const toggleAIChat = () => setAiOpen(!aiOpen);
 
   const askAI = (qId) => {
@@ -279,25 +280,22 @@ export default function AIChemistry() {
   return (
     <div className="vle-container">
       <style>{`
-        /* 🌟 核心修复 2：将外层容器高度由 100vh 改为 100%，防止撑爆路由面板 */
         .vle-container {
             --bg-color: #0f172a; --panel-bg: #1e293b; --text-main: #f8fafc;
             --text-muted: #94a3b8; --accent: #3b82f6; --accent-hover: #2563eb;
             --danger: #ef4444; --success: #10b981; --warning: #facc15;
-            background-color: var(--bg-color); color: var(--text-main); 
-            height: 100%; 
-            display: flex; flex-direction: column; overflow: hidden;
+            background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden;
             font-family: 'Segoe UI', Tahoma, sans-serif;
         }
         .vle-container * { box-sizing: border-box; margin: 0; padding: 0; }
         
         .vle-header { background-color: #020617; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; z-index: 100; }
-        .title-box h1 { font-size: 1.2rem; font-weight: 600; color: #38bdf8; margin-bottom: 0;}
-        .title-box p { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; margin-bottom: 0;}
+        .title-box h1 { font-size: 1.2rem; font-weight: 600; color: #38bdf8; }
+        .title-box p { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
         .module-switch button { background-color: var(--panel-bg); color: white; border: 1px solid #475569; padding: 6px 15px; border-radius: 5px; cursor: pointer; transition: 0.3s; margin-left: 10px; }
         .module-switch button.active { background-color: var(--accent); border-color: var(--accent); }
 
-        .vle-main { display: flex; flex: 1; height: calc(100% - 65px); position: relative;}
+        .vle-main { display: flex; flex: 1; height: calc(100vh - 65px); position: relative;}
 
         .sidebar { width: 310px; background-color: var(--panel-bg); padding: 15px; overflow-y: auto; border-right: 1px solid #334155; display: flex; flex-direction: column; }
         .step-group { margin-bottom: 15px; }
@@ -406,15 +404,30 @@ export default function AIChemistry() {
         
         .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(16, 185, 129, 0.9); color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; transition: 0.3s; z-index: 200; pointer-events: none;}
 
-        /* 🌟 核心修复 3：强行隐藏原来 VirtualLab 自带的 AI 对话悬浮球和弹窗，避免和全局 DeepSeek 冲突 */
-        .ai-fab, .ai-modal { display: none !important; }
-
+        .ai-fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #8b5cf6; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4); z-index: 1000; transition: 0.3s;}
+        .ai-fab:hover { transform: scale(1.1); background: #7c3aed; }
+        
+        .ai-modal { position: fixed; bottom: 100px; right: 30px; width: 400px; max-height: 500px; background: var(--panel-bg); border: 1px solid #475569; border-radius: 12px; display: none; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden;}
+        .ai-modal.active { display: flex; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+        
+        .ai-header { background: #8b5cf6; padding: 15px; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
+        .ai-header span { font-size: 1rem; }
+        .ai-close { cursor: pointer; background: none; border: none; color: white; font-size: 1.2rem;}
+        
+        .ai-body { padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #0f172a; flex: 1; height: 350px;}
+        .ai-question { background: #334155; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; color: #f8fafc; transition: 0.2s; border-left: 3px solid #8b5cf6;}
+        .ai-question:hover { background: #475569; }
+        
+        .chat-bubble { max-width: 85%; padding: 10px 15px; border-radius: 12px; font-size: 0.85rem; line-height: 1.5; margin-bottom: 10px;}
+        .chat-user { background: #3b82f6; color: white; align-self: flex-end; border-bottom-right-radius: 2px;}
+        .chat-ai { background: #1e293b; color: #cbd5e1; align-self: flex-start; border: 1px solid #334155; border-bottom-left-radius: 2px;}
+        .cite-tag { font-size: 0.7rem; color: #a78bfa; margin-left: 4px; vertical-align: super;}
       `}</style>
 
       <header className="vle-header">
         <div className="title-box">
-          {/* 你刚才提供的第二套标题 */}
-          <h1>🧪 SMARTCHEM VLE：过渡金属配合物合成与表征</h1>
+          <h1>🧪 SMARTCHEM VLE：过渡金属配合物合成与表征平台 (完全解禁版)</h1>
           <p>已彻底解除所有步骤顺序限制 | 药品随时点击 | 即点即看</p>
         </div>
         <div className="module-switch">
@@ -609,7 +622,6 @@ export default function AIChemistry() {
           </div>
         </aside>
 
-        {/* 已经通过 CSS 彻底隐藏此区域，避免冲突 */}
         <div className="ai-fab" onClick={toggleAIChat}>🤖</div>
         <div className={`ai-modal ${aiOpen ? 'active' : ''}`}>
           <div className="ai-header">
@@ -620,6 +632,9 @@ export default function AIChemistry() {
             {chatHistory.map(msg => (
               <div key={msg.id} className={`chat-bubble ${msg.role === 'ai' ? 'chat-ai' : 'chat-user'}`} dangerouslySetInnerHTML={{ __html: msg.html }} />
             ))}
+            <div className="ai-question" onClick={() => askAI(1)}>❓ 发现 [Cu(H₂O)₆]²⁺ 的吸收峰存在不对称“肩峰”，结合姜-泰勒效应解释。</div>
+            <div className="ai-question" onClick={() => askAI(2)}>❓ 实验要求三草酸铁酸钾避光。请从氧化还原角度解释光促内电子转移？</div>
+            <div className="ai-question" onClick={() => askAI(3)}>❓ 在生成 [Cu(en)₂]²⁺ 时，反应焓变极小，从热力学推导“螯合效应”。</div>
           </div>
         </div>
       </main>
